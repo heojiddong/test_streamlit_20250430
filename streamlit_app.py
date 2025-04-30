@@ -63,4 +63,4 @@ if api_key:
                 time.sleep(1)
 
         # 응답 출력
-        messages = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id_
+        messages = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id_)
