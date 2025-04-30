@@ -4,7 +4,7 @@ import time
 
 st.title("Chat with GPT-4.1-mini via Assistant API")
 
-# API 키 입력
+# 🔐 OpenAI API Key 입력
 api_key = st.text_input("Enter your OpenAI API Key", type="password")
 
 if api_key:
@@ -16,28 +16,26 @@ if api_key:
     if "assistant_id" not in st.session_state:
         st.session_state.assistant_id = None
 
-    # 어시스턴트 생성 (최초 한 번)
+    # 어시스턴트 생성 (최초 1회)
     if st.session_state.assistant_id is None:
-        try:
-            assistant = openai.beta.assistants.create(
-                name="Mini Chat Assistant",
-                instructions="You are a helpful AI assistant.",
-                model="gpt-4-1106-preview"
-            )
-            st.session_state.assistant_id = assistant.id
-        except Exception as e:
-            st.error(f"Failed to create assistant: {e}")
+        assistant = openai.beta.assistants.create(
+            name="Mini Chat Assistant",
+            instructions="You are a helpful assistant.",
+            model="gpt-4-1106-preview"
+        )
+        st.session_state.assistant_id = assistant.id
 
-    # 대화 쓰레드 생성
+    # 쓰레드 생성
     if st.session_state.thread_id is None:
         thread = openai.beta.threads.create()
         st.session_state.thread_id = thread.id
 
-    # 사용자 입력
-    user_input = st.text_input("Your message:")
-    send_button = st.button("Send")
+    # ✅ Enter와 버튼 둘 다 작동하도록 form 사용
+    with st.form("chat_form", clear_on_submit=True):
+        user_input = st.text_input("Your message:")
+        submitted = st.form_submit_button("Send")
 
-    if send_button and user_input:
+    if submitted and user_input:
         # 메시지 추가
         openai.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
@@ -45,13 +43,13 @@ if api_key:
             content=user_input
         )
 
-        # Run 시작
+        # Run 실행
         run = openai.beta.threads.runs.create(
             thread_id=st.session_state.thread_id,
             assistant_id=st.session_state.assistant_id,
         )
 
-        # 상태 폴링 (대기)
+        # 응답 대기
         with st.spinner("Assistant is thinking..."):
             while True:
                 run_status = openai.beta.threads.runs.retrieve(
@@ -65,7 +63,7 @@ if api_key:
                     break
                 time.sleep(1)
 
-        # 응답 메시지 가져오기
+        # 응답 출력
         messages = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id)
         for msg in reversed(messages.data):
             if msg.role == "assistant":
