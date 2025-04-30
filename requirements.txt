@@ -1,2 +1,3 @@
 openai
 pip install --upgrade openai
+protobuf==3.19.6
