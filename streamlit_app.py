@@ -63,4 +63,11 @@ if api_key:
                 time.sleep(1)
 
         # 응답 출력
-        messages = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id_)
+        messages = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id)
+        for msg in reversed(messages.data):
+            if msg.role == "assistant":
+                st.write(f"GPT: {msg.content[0].text.value}")
+            elif msg.role == "user":
+                st.write(f"User: {msg.content[0].text.value}")
+else:
+    st.info("Please enter your OpenAI API key to start chatting.")
