@@ -1,4 +1,5 @@
 import streamlit as st
+import openai
 import time
 
 st.title("Chat with GPT-4.1-mini via Assistant API")
