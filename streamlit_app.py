@@ -13,54 +13,61 @@ if api_key:
     # 세션 상태 초기화
     if "thread_id" not in st.session_state:
         st.session_state.thread_id = None
+    if "assistant_id" not in st.session_state:
+        st.session_state.assistant_id = None
 
-    # 쓰레드 생성 (최초 1회)
+    # 어시스턴트 생성 (최초 1회)
+    if st.session_state.assistant_id is None:
+        assistant = openai.beta.assistants.create(
+            name="Mini Chat Assistant",
+            instructions="You are a helpful assistant.",
+            model="gpt-4-1106-preview"
+        )
+        st.session_state.assistant_id = assistant.id
+
+    # 쓰레드 생성
     if st.session_state.thread_id is None:
-        # 새로운 채팅 스레드 생성
-        st.session_state.thread_id = openai.ChatCompletion.create(
-            model="gpt-4-1106-preview",  # GPT 모델 선택
-            messages=[{"role": "system", "content": "You are a helpful assistant."}]
-        ).id
+        thread = openai.beta.threads.create()
+        st.session_state.thread_id = thread.id
 
-    # ✅ Enter와 버튼 둘 다 작동하도록 form 사용
-    with st.form("chat_form", clear_on_submit=True):
-        user_input = st.text_input("Your message:")
-        submitted = st.form_submit_button("Send")
+    # ✅ 버튼만 사용
+    user_input = st.text_input("Your message:")
+    submit_button = st.button("Send")
 
-    if submitted and user_input:
+    if submit_button and user_input:
         # 메시지 추가
-        openai.ChatCompletion.create(
-            model="gpt-4-1106-preview",
-            messages=[
-                {"role": "user", "content": user_input}
-            ],
-            thread_id=st.session_state.thread_id  # 기존 스레드로 메시지 추가
+        openai.beta.threads.messages.create(
+            thread_id=st.session_state.thread_id,
+            role="user",
+            content=user_input
+        )
+
+        # Run 실행
+        run = openai.beta.threads.runs.create(
+            thread_id=st.session_state.thread_id,
+            assistant_id=st.session_state.assistant_id,
         )
 
         # 응답 대기
         with st.spinner("Assistant is thinking..."):
-            response = None
             while True:
-                # 채팅 응답 요청
-                response = openai.ChatCompletion.retrieve(
-                    thread_id=st.session_state.thread_id
+                run_status = openai.beta.threads.runs.retrieve(
+                    thread_id=st.session_state.thread_id,
+                    run_id=run.id
                 )
-
-                # 응답이 완료되면 break
-                if response['status'] == "completed":
+                if run_status.status == "completed":
                     break
-                elif response['status'] == "failed":
+                elif run_status.status == "failed":
                     st.error("Run failed.")
                     break
                 time.sleep(1)
 
         # 응답 출력
-        if response:
-            messages = response['messages']
-            for msg in reversed(messages):
-                if msg['role'] == 'assistant':
-                    st.write(f"GPT: {msg['content']}")
-                elif msg['role'] == 'user':
-                    st.write(f"User: {msg['content']}")
+        messages = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id)
+        for msg in reversed(messages.data):
+            if msg.role == "assistant":
+                st.write(f"GPT: {msg.content[0].text.value}")
+            elif msg.role == "user":
+                st.write(f"User: {msg.content[0].text.value}")
 else:
     st.info("Please enter your OpenAI API key to start chatting.")
