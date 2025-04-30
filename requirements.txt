@@ -1,2 +1,2 @@
-openAI
+openai
 pip install --upgrade openai
