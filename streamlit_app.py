@@ -2,8 +2,6 @@ import streamlit as st
 import openai
 import time
 
-pip install --upgrade openai
-
 st.title("Chat with GPT-4.1-mini via Assistant API")
 
 # 🔐 OpenAI API Key 입력
